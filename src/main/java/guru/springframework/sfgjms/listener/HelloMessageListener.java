@@ -10,6 +10,7 @@ import org.springframework.messaging.handler.annotation.Headers;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
+import javax.jms.Destination;
 import javax.jms.JMSException;
 import javax.jms.Message;
 import java.util.UUID;
@@ -39,13 +40,19 @@ public class HelloMessageListener {
 
     @JmsListener(destination = JmsConfig.MY_SEND_RCV_QUEUE)
     public void listenForHello(@Payload HelloWorldMessage helloWorldMessage,
-                       @Headers MessageHeaders headers, Message message) throws JMSException {
+                       @Headers MessageHeaders headers, Message message,
+                        org.springframework.messaging.Message springImplMessage) throws JMSException {
 
         HelloWorldMessage payloadMsg = HelloWorldMessage
                 .builder()
                 .id(UUID.randomUUID())
                 .message("World!!")
                 .build();
+
+        //message is the jms interface implementation
+        //springImplMessage is the spring implementation of the jms message, it does abstraction to it
+        //so if we want to switch from one jmsmessage provider(like activemq) to another its easier if using teh spring jms abstraction
+        jmsTemplate.convertAndSend((Destination) springImplMessage.getHeaders().get("jms_replyTo"), payloadMsg);
 
         jmsTemplate.convertAndSend(message.getJMSReplyTo(), payloadMsg);
 
